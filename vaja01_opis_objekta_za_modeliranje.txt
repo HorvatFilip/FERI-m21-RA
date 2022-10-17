@@ -1,0 +1,19 @@
+RACUNALNISKA ANIMACIJA - Vaja01: izbira objekta za modeliranje
+
+- objekt: Zippo vžigalnik
+- podrobnosti: 
+    -> Sam mehanizem vzigalnika je obdan z OHIŠJEM (moznost odpiranja)
+    -> OGRODJE ZA PLAMEN
+        --> ovalne oblike
+        --> luknjice za prehod zraka
+    -> MEHANIZEM ZA ISKRO (kolo in kremen):
+        --> kolo bo imelo zarezice, ki s kremenom delajo iskre
+        --> kolo bo fiksirano na ogrodje za plamen (moznost vrtenja)
+        --> kremen je ovalne oblike po kolesom (se rahko stika s kolesom=
+    -> bombazna vzigalna VRVICA
+        --> obdana z ogrodjem za plamen
+        --> "krtacasta" (vec malih nitk, niso poravnane oz enakomerno porazdeljene)
+    -> MEHANIZEM ZA ZAPIRANJE - lighter CAM (za zapiranje)
+        --> na enem koncu vzigalnika
+        --> kvadratne oblike, ki je v sredini nekoliko zožen
+        

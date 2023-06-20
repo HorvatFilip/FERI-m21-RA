@@ -65,7 +65,7 @@ function updateChainConfig() {
     let lineWidth = nSeg + 1;
     for (let i = 0; i < nSeg; i++) {
         currentAngles.push(
-            random(0, PI)
+            PI
         );
         let color = {
             r: random(255),
@@ -96,7 +96,6 @@ function update_lenInput() {
 
 function update_d() {
     d = int(this.value());
-    d = d * 0.017453
     drawChain = true;
     updateChainConfig();
 }
@@ -147,17 +146,12 @@ function optimization_IK(d, g, maxIterCount, target) {
             anglesA[i] = anglesA[i] + g;
             anglesB[i] = anglesB[i] - g;
             gradients[i] = err(anglesA, target) - err(anglesB, target);
-            if (Math.abs(gradients[i]) > g) {
-                if (gradients[i] > 0) {
-                    gradients[i] = g;
-                } else {
-                    gradients[i] = -g;
-                }
-            }
         }
+        console.log(currentAngles);
         currentAngles = currentAngles.map((angle, indx) => {
             return angle - gradients[indx];
         });
+        console.log(currentAngles);
     }
     if (iterCount >= maxIterCount) {
         return false;
@@ -190,33 +184,28 @@ function generateChain(start, angles) {
     return chainInfo;
 }
 
-function draw() {
-    background(255);
-    stroke(0);
-    ellipse(chainStartingPos.x, chainStartingPos.y, nSeg * segLen * 2, nSeg * segLen * 2);
 
-    let target = {
-        x: mouseX,
-        y: mouseY
-    }
-    if (currentAngles.length > 0) {
-        let generateNew = optimization_IK(d, g, maxIterCount, target);
-        if (generateNew) {
-            chainPoints = generateChain(chainStartingPos, currentAngles);
+let drawOnce = true;
+function draw() {
+    if (drawOnce) {
+        background(255);
+        stroke(0);
+        ellipse(chainStartingPos.x, chainStartingPos.y, nSeg * segLen * 2, nSeg * segLen * 2);
+        drawOnce = false;
+        chainPoints = generateChain(chainStartingPos, currentAngles);
+        console.log(currentAngles);
+
+        ellipse(chainPoints[chainPoints.length - 1].pos.x, chainPoints[chainPoints.length - 1].pos.y, d * 2, d * 2);
+        for (let i = 0; i < chainPoints.length; i++) {
+            strokeWeight(chainDrawInfo[i].thickness);
+            stroke(
+                chainDrawInfo[i].color.r,
+                chainDrawInfo[i].color.g,
+                chainDrawInfo[i].color.b
+            );
+            line(chainPoints[i].oldPos.x, chainPoints[i].oldPos.y,
+                chainPoints[i].pos.x, chainPoints[i].pos.y);
         }
-        console.log(chainPoints);
-        if (chainPoints.length > 0 && chainDrawInfo.length > 0) {
-            ellipse(chainPoints[chainPoints.length - 1].pos.x, chainPoints[chainPoints.length - 1].pos.y, d * 2, d * 2);
-            for (let i = 0; i < chainPoints.length; i++) {
-                strokeWeight(chainDrawInfo[i].thickness);
-                stroke(
-                    chainDrawInfo[i].color.r,
-                    chainDrawInfo[i].color.g,
-                    chainDrawInfo[i].color.b
-                );
-                line(chainPoints[i].oldPos.x, chainPoints[i].oldPos.y,
-                    chainPoints[i].pos.x, chainPoints[i].pos.y);
-            }
-        }
+
     }
 }

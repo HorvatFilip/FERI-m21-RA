@@ -7,11 +7,9 @@ let dInput;
 let gInput;
 let maxIterCountInput;
 let d = 10;
-let g = 1;
+let g = 180;
 let maxIterCount = 3000;
 let chainStartingPos;
-
-let drawChain = true;
 
 let currentAngles = [];
 let chainDrawInfo = [];
@@ -45,6 +43,7 @@ function setup() {
     gInputLabel.position(20, 175);
 
     gInput = createInput(g.toString());
+    g = g * 0.017453
     gInput.position(20, 200);
     gInput.input(update_g);
 
@@ -84,38 +83,40 @@ function updateChainConfig() {
 
 function update_nSeg() {
     nSeg = int(this.value());
-    drawChain = true;
     updateChainConfig();
 }
 
 function update_lenInput() {
     segLen = int(this.value());
-    drawChain = true;
     updateChainConfig();
 }
 
 function update_d() {
     d = int(this.value());
-    d = d * 0.017453
-    drawChain = true;
     updateChainConfig();
 }
 
 function update_g() {
     g = int(this.value());
-    drawChain = true;
+    g = g * 0.017453
     updateChainConfig();
 }
 
 function update_maxIterCount() {
     maxIterCount = int(this.value());
-    drawChain = true;
     updateChainConfig();
+}
+
+function distance(p1, p2) {
+    return Math.sqrt(
+        Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2)
+    );
 }
 
 function err(angles, target) {
     let chain = generateChain(chainStartingPos, angles);
     let lastElement = chain[chain.length - 1];
+    return distance(target, lastElement.pos);
     return Math.sqrt(
         Math.pow(target.x - lastElement.pos.x, 2) + Math.pow(target.y - lastElement.pos.y, 2)
     );
@@ -190,33 +191,59 @@ function generateChain(start, angles) {
     return chainInfo;
 }
 
-function draw() {
-    background(255);
-    stroke(0);
-    ellipse(chainStartingPos.x, chainStartingPos.y, nSeg * segLen * 2, nSeg * segLen * 2);
+function drawChain(chainPoints, chainDrawInfo) {
+    ellipse(chainPoints[chainPoints.length - 1].pos.x, chainPoints[chainPoints.length - 1].pos.y, d * 2, d * 2);
+    for (let i = 0; i < chainPoints.length; i++) {
+        strokeWeight(chainDrawInfo[i].thickness);
+        stroke(
+            chainDrawInfo[i].color.r,
+            chainDrawInfo[i].color.g,
+            chainDrawInfo[i].color.b
+        );
+        line(chainPoints[i].oldPos.x, chainPoints[i].oldPos.y,
+            chainPoints[i].pos.x, chainPoints[i].pos.y);
+    }
+}
 
+let prevTarget = null;
+function mouseClicked() {
     let target = {
         x: mouseX,
         y: mouseY
     }
-    if (currentAngles.length > 0) {
-        let generateNew = optimization_IK(d, g, maxIterCount, target);
-        if (generateNew) {
-            chainPoints = generateChain(chainStartingPos, currentAngles);
-        }
-        console.log(chainPoints);
-        if (chainPoints.length > 0 && chainDrawInfo.length > 0) {
-            ellipse(chainPoints[chainPoints.length - 1].pos.x, chainPoints[chainPoints.length - 1].pos.y, d * 2, d * 2);
-            for (let i = 0; i < chainPoints.length; i++) {
-                strokeWeight(chainDrawInfo[i].thickness);
-                stroke(
-                    chainDrawInfo[i].color.r,
-                    chainDrawInfo[i].color.g,
-                    chainDrawInfo[i].color.b
-                );
-                line(chainPoints[i].oldPos.x, chainPoints[i].oldPos.y,
-                    chainPoints[i].pos.x, chainPoints[i].pos.y);
+    let chainDrawRadius = nSeg * segLen;
+
+    if (distance(chainStartingPos, target) <= chainDrawRadius) {
+        console.log("Draw");
+        background(255);
+        stroke(0);
+        ellipse(chainStartingPos.x, chainStartingPos.y, nSeg * segLen * 2, nSeg * segLen * 2);
+
+        if (currentAngles.length > 0) {
+            let generateNew = optimization_IK(d, g, maxIterCount, target);
+            chainPoints = [];
+            if (generateNew) {
+                chainPoints = generateChain(chainStartingPos, currentAngles);
+            }
+            if (chainPoints.length > 0 && chainDrawInfo.length > 0) {
+                drawChain(chainPoints, chainDrawInfo);
             }
         }
+    }
+}
+
+let drawOnce = true;
+function draw() {
+    if (drawOnce) {
+        drawOnce = false;
+        background(255);
+        stroke(0);
+        ellipse(chainStartingPos.x, chainStartingPos.y, nSeg * segLen * 2, nSeg * segLen * 2);
+        chainPoints = generateChain(chainStartingPos, currentAngles);
+
+        if (chainPoints.length > 0 && chainDrawInfo.length > 0) {
+            drawChain(chainPoints, chainDrawInfo);
+        }
+
     }
 }

@@ -6,7 +6,7 @@ let lenInput;
 let dInput;
 let gInput;
 let maxIterCountInput;
-let d = 10;
+let d = 10 * 0.017453;
 let g = 1;
 let maxIterCount = 3000;
 let chainStartingPos;

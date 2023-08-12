@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Three.js Sphere Collision with Bouncing</title>
+  <style>
+    body { margin: 0; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <script src="js/libs/three.min.js"></script>
+  <script src="js/controls/OrbitControls.js"></script>
+  
+  <script>
+    // Initialize Three.js
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setClearColor(0x888888); // Set background color to gray
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // Create a cube
+    const cubeSize = 50;
+    const cubeGeometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
+    const cubeMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
+    const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+    scene.add(cube);
+
+
+    var buffgeoBack = new THREE.IcosahedronBufferGeometry(3000, 2);
+    var matBack = new THREE.MeshBasicMaterial({
+        color: 0x000000,
+        side: THREE.BackSide
+    });
+    var back = new THREE.Mesh(buffgeoBack, matBack);
+    scene.add(back);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(0, 1, 0); // Set light direction
+    scene.add(directionalLight);
+
+    camera.position.set(0, 0, 20);
+
+    // Create OrbitControls
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+    // Function to create a random sphere
+    function createSphere() {
+      const sphereRadius = 1;
+      const sphereGeometry = new THREE.SphereGeometry(sphereRadius, 32, 32);
+      const sphereMaterial = new THREE.MeshLambertMaterial({ color: Math.random() * 0xffffff });
+      const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+      
+      // Random initial position within the cube
+      sphere.position.x = (Math.random() - 0.5) * cubeSize;
+      sphere.position.y = (Math.random() - 0.5) * cubeSize;
+      sphere.position.z = (Math.random() - 0.5) * cubeSize;
+
+      // Random initial velocity
+      sphere.velocity = new THREE.Vector3(
+        Math.random() * 0.2 - 0.1,
+        Math.random() * 0.2 - 0.1,
+        Math.random() * 0.2 - 0.1
+      );
+
+      scene.add(sphere);
+      return sphere;
+    }
+
+    const numSpheres = 10;
+    const spheres = [];
+
+    // Create and store spheres
+    for (let i = 0; i < numSpheres; i++) {
+      spheres.push(createSphere());
+    }
+
+
+    // Main render loop
+    const animate = () => {
+      requestAnimationFrame(animate);
+
+      // Update sphere positions and check for collisions
+      for (let i = 0; i < spheres.length; i++) {
+        const sphere = spheres[i];
+
+        // Update position based on velocity
+        sphere.position.add(sphere.velocity);
+
+        // Check for collisions with the cube boundaries
+        if (Math.abs(sphere.position.x) >= cubeSize / 2) {
+          sphere.velocity.x *= -1;
+        }
+        if (Math.abs(sphere.position.y) >= cubeSize / 2) {
+          sphere.velocity.y *= -1;
+        }
+        if (Math.abs(sphere.position.z) >= cubeSize / 2) {
+          sphere.velocity.z *= -1;
+        }
+
+        // Check for collisions with other spheres
+        for (let j = i + 1; j < spheres.length; j++) {
+          const otherSphere = spheres[j];
+          const distance = sphere.position.distanceTo(otherSphere.position);
+          const minDistance = 2 * sphere.geometry.parameters.radius;
+
+          if (distance < minDistance) {
+            const normal = sphere.position.clone().sub(otherSphere.position).normalize();
+            const relativeVelocity = sphere.velocity.clone().sub(otherSphere.velocity);
+            const impactVelocity = relativeVelocity.dot(normal);
+
+            // Handle collision response
+            if (impactVelocity > 0) {
+              const impulse = -2 * impactVelocity / (1 / sphere.mass + 1 / otherSphere.mass);
+              const impulseVector = normal.clone().multiplyScalar(impulse);
+
+              sphere.velocity.add(impulseVector.clone().divideScalar(sphere.mass));
+              otherSphere.velocity.sub(impulseVector.clone().divideScalar(otherSphere.mass));
+            }
+          }
+        }
+      }
+
+      renderer.render(scene, camera);
+    };
+
+    animate();
+  </script>
+</body>
+</html>

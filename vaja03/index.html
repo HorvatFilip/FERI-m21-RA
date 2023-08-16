@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Three.js particle Collision with Bouncing</title>
+    <title>RA-Vaja03</title>
     <style>
       body {
         margin: 0;
@@ -86,7 +86,7 @@
       let fps_display = document.getElementById("fps_display");
       const configForm = document.getElementById("configForm");
 
-      // Initialize Three.js
+      // INIT Three.js
       const scene = new THREE.Scene();
       const camera = new THREE.PerspectiveCamera(
         75,
@@ -94,12 +94,32 @@
         0.1,
         1000
       );
+
       const renderer = new THREE.WebGLRenderer();
-      renderer.setClearColor(0x888888); // Set background color to gray
+      renderer.setClearColor(0x888888);
       renderer.setSize(window.innerWidth, window.innerHeight);
       document.body.appendChild(renderer.domElement);
 
-      // Create a cube
+      camera.position.set(300, 100, 0);
+
+      // OrbitControls
+      const controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+      // BACKGROUND
+      var buffgeoBack = new THREE.IcosahedronBufferGeometry(3000, 2);
+      var matBack = new THREE.MeshBasicMaterial({
+        color: 0x000000,
+        side: THREE.BackSide,
+      });
+      var back = new THREE.Mesh(buffgeoBack, matBack);
+      scene.add(back);
+
+      // LIGHT SOURCE
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+      directionalLight.position.set(0, 1, 0);
+      scene.add(directionalLight);
+
+      // BORDER CUBE
       const cubeSize = 180;
       const cubeGeometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
       const cubeMaterial = new THREE.MeshBasicMaterial({
@@ -131,23 +151,6 @@
 
       const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
       scene.add(cube);
-
-      var buffgeoBack = new THREE.IcosahedronBufferGeometry(3000, 2);
-      var matBack = new THREE.MeshBasicMaterial({
-        color: 0x000000,
-        side: THREE.BackSide,
-      });
-      var back = new THREE.Mesh(buffgeoBack, matBack);
-      scene.add(back);
-
-      const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-      directionalLight.position.set(0, 1, 0); // Set light direction
-      scene.add(directionalLight);
-
-      camera.position.set(300, 100, 0);
-
-      // Create OrbitControls
-      const controls = new THREE.OrbitControls(camera, renderer.domElement);
 
       let randomSpawnPos = false;
       let killAfterTime = true;
@@ -284,7 +287,6 @@
         };
 
         SIM.loadConfig(configuration);
-        // You can use the 'configuration' object to pass these values to your Three.js application
       });
 
       let fps = 0;
@@ -305,9 +307,10 @@
           if (updateFps) {
             fps = 1 / (deltaTime / 1000);
           }
-          // console.log(`FPS: ${Math.round(fps)}`);
+
           particles.forEach((particleObj01) => {
             let particle01 = particleObj01.mesh;
+
             // New VELOCITY
             let trueGravity = gravity.clone().multiplyScalar(deltaTime);
             particle01.velocity.add(trueGravity);
@@ -324,6 +327,7 @@
                     .clone()
                     .sub(particle02.velocity);
 
+                  // (u1−u2)⋅( v 1−v 2)<0
                   let collisionPossible = posDiff.dot(velDiff) < 0;
                   if (collisionPossible) {
                     const centerDifference = particle02.position
@@ -336,7 +340,11 @@
                       particle01.geometry.parameters.radius +
                         particle02.geometry.parameters.radius;
                     if (didCollide) {
-                      const normal = posDiff.clone().normalize();
+                      // n=(up−uq)/(‖up−uq‖+1)
+                      const magnitude = posDiff.length();
+                      const normal = posDiff.divideScalar(magnitude);
+
+                      // v1(ti+1)=v1(ti)−(1+k)(v1(ti)⋅n2)n2
                       let dotProduct = particle01.velocity.clone().dot(normal);
                       let supForce = -(1 + k);
                       particle01.velocity.add(
@@ -358,31 +366,10 @@
                     .sub(particle02.velocity);
 
                   let collisionPossible = posDiff.dot(velDiff) < 0;
-                  if (collisionPossible) {
+                  if (collisionPossible || true) {
                     let d = new THREE.Vector3(0, 0, 0);
 
-                    // if (particleAttract) {
-                    //   const displacement = particle01.position
-                    //     .clone()
-                    //     .sub(particle02.position);
-                    //   const magnitude = displacement.length() + 1;
-                    //   const exponent = Math.pow(magnitude, alpha);
-                    //   d = displacement.divideScalar(exponent);
-                    // }
-
                     if (particleAttract) {
-                      // const magnitude =
-                      //   particle01.position
-                      //     .clone()
-                      //     .sub(particle02.position)
-                      //     .length() + 1;
-                      // const exponent = Math.pow(magnitude, alpha);
-                      // const displacement = particle01.position
-                      //   .clone()
-                      //   .sub(particle02.position)
-                      //   .multiplyScalar(k);
-                      // d = displacement.divideScalar(exponent);
-                      // particle01.velocity.copy(d);
                       const positionDifference = particle02.position
                         .clone()
                         .sub(particle01.position);
@@ -404,16 +391,12 @@
                         .add(attractionForce.clone().multiplyScalar(beta));
                       particle01.velocity.copy(newVelocity);
                     } else {
-                      const magnitude =
-                        particle01.position
-                          .clone()
-                          .sub(particle02.position)
-                          .length() + 1;
+                      // d=d+(up−uq)/pow((‖up−uq‖+1),α)
+                      const magnitude = posDiff.length() + 1;
                       const exponent = Math.pow(magnitude, alpha);
-                      const displacement = particle01.position
-                        .clone()
-                        .sub(particle02.position);
-                      d.add(displacement.divideScalar(exponent));
+                      d.add(posDiff.divideScalar(exponent));
+
+                      // vp(t+1)=(1−β)vp(t)+βd
                       const velocity01_t = particle01.velocity.clone();
                       const newVelocity = velocity01_t
                         .clone()
